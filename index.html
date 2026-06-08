@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>離乳食週次メニュープランナー</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Hiragino Kaku Gothic ProN','Meiryo',sans-serif; background:#fff8f0; color:#333; min-height:100vh; }
+
+header {
+  background: linear-gradient(135deg,#ff8c69,#ffb347);
+  color:white; padding:14px 20px 0;
+  box-shadow:0 2px 8px rgba(0,0,0,.15);
+  position:sticky; top:0; z-index:100;
+}
+header .top { text-align:center; margin-bottom:10px; }
+header h1 { font-size:1.3rem; margin-bottom:2px; }
+header p { font-size:.75rem; opacity:.9; }
+.tabs { display:flex; }
+.tab-btn {
+  flex:1; padding:10px 8px; border:none;
+  background:rgba(255,255,255,.2); color:rgba(255,255,255,.8);
+  font-size:.85rem; font-weight:bold; cursor:pointer;
+  border-radius:8px 8px 0 0; transition:all .2s;
+  display:flex; align-items:center; justify-content:center; gap:5px;
+}
+.tab-btn.active { background:#fff8f0; color:#ff7043; }
+.tab-btn .cnt {
+  background:#ff5252; color:white; border-radius:10px;
+  padding:1px 6px; font-size:.68rem; min-width:18px; text-align:center;
+}
+
+.page { display:none; }
+.page.active { display:block; }
+.container { max-width:900px; margin:0 auto; padding:16px; }
+
+.card { background:white; border-radius:16px; padding:20px; margin-bottom:16px; box-shadow:0 2px 12px rgba(0,0,0,.07); }
+.card-title { font-size:1rem; font-weight:bold; color:#ff7043; margin-bottom:14px; display:flex; align-items:center; gap:8px; }
+.badge { background:#ff7043; color:white; border-radius:50%; width:24px; height:24px; display:flex; align-items:center; justify-content:center; font-size:.75rem; font-weight:bold; flex-shrink:0; }
+
+.age-buttons { display:flex; flex-wrap:wrap; gap:8px; }
+.age-btn { padding:10px 16px; border:2px solid #ffb347; border-radius:24px; background:white; cursor:pointer; font-size:.85rem; color:#ff7043; font-weight:bold; transition:all .2s; }
+.age-btn:hover { background:#fff3e0; }
+.age-btn.active { background:#ff7043; color:white; border-color:#ff7043; }
+.stage-desc { margin-top:12px; padding:10px 14px; background:#fff8f0; border-radius:10px; font-size:.82rem; color:#666; border-left:3px solid #ffb347; display:none; }
+.week-btn { padding:8px 14px; border:2px solid #ffb347; border-radius:12px; background:white; cursor:pointer; font-size:.82rem; color:#ff7043; font-weight:bold; text-align:center; line-height:1.4; transition:all .2s; touch-action:manipulation; }
+.week-btn:hover { background:#fff3e0; }
+.week-btn.active { background:#ff7043; color:white; border-color:#ff7043; }
+
+.ingredient-groups { display:flex; flex-direction:column; gap:12px; }
+.ig-label { font-size:.8rem; font-weight:bold; color:#888; margin-bottom:6px; display:flex; align-items:center; gap:6px; }
+.ig-label .dot { width:10px; height:10px; border-radius:50%; display:inline-block; }
+.dot-grain { background:#f4c430; } .dot-veg { background:#66bb6a; } .dot-protein { background:#ef5350; }
+.tag-input-area { border:1.5px solid #e0e0e0; border-radius:12px; padding:8px 10px; display:flex; flex-wrap:wrap; gap:6px; min-height:44px; cursor:text; transition:border-color .2s; }
+.tag-input-area:focus-within { border-color:#ff7043; }
+.tag { background:#fff3e0; border:1px solid #ffb347; border-radius:16px; padding:3px 10px; font-size:.8rem; display:flex; align-items:center; gap:4px; color:#e65100; }
+.tag .rm { cursor:pointer; font-size:.9rem; color:#bbb; }
+.tag .rm:hover { color:#e65100; }
+.tag-input { border:none; outline:none; font-size:.82rem; min-width:80px; flex:1; background:transparent; }
+.quick-add { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+.quick-chip { padding:4px 10px; border:1px solid #e0e0e0; border-radius:14px; font-size:.75rem; cursor:pointer; color:#666; background:#fafafa; transition:all .15s; }
+.quick-chip:hover { border-color:#ff7043; color:#ff7043; background:#fff8f0; }
+
+.gen-btn { width:100%; padding:14px; background:linear-gradient(135deg,#ff7043,#ffb347); color:white; border:none; border-radius:14px; font-size:1rem; font-weight:bold; cursor:pointer; transition:opacity .2s,transform .1s; box-shadow:0 4px 12px rgba(255,112,67,.35); }
+.gen-btn:hover { opacity:.92; transform:translateY(-1px); }
+
+#menu-result { display:none; }
+.menu-hdr { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+.menu-ttl { font-size:1.1rem; font-weight:bold; color:#333; }
+.regen-btn { padding:7px 14px; border:1.5px solid #ff7043; border-radius:20px; background:white; color:#ff7043; font-size:.8rem; cursor:pointer; font-weight:bold; }
+.regen-btn:hover { background:#fff3e0; }
+
+.day-card { border:1.5px solid #ffe0cc; border-radius:14px; margin-bottom:10px; overflow:hidden; }
+.day-hdr { background:linear-gradient(90deg,#fff3e0,#ffe0b2); padding:10px 16px; display:flex; align-items:center; gap:10px; }
+.day-lbl { font-weight:bold; font-size:.9rem; color:#e65100; min-width:50px; }
+.new-badge { background:#ff5252; color:white; font-size:.7rem; padding:2px 8px; border-radius:10px; font-weight:bold; }
+.day-body { padding:12px 16px; }
+.meal-row { display:flex; align-items:flex-start; gap:10px; padding:6px 0; border-bottom:1px dashed #f0e0d0; }
+.meal-row:last-child { border-bottom:none; }
+.meal-time { font-size:.75rem; color:#999; min-width:36px; padding-top:2px; }
+.meal-content { flex:1; }
+.meal-name { font-size:.88rem; font-weight:bold; color:#333; margin-bottom:6px; }
+.meal-ings { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+.ing-tag { display:inline-flex; align-items:center; gap:3px; padding:3px 9px; border-radius:12px; font-size:.75rem; cursor:pointer; transition:all .15s; border:1px solid transparent; }
+.ing-tag.grain { background:#fffde7; color:#f57f17; border-color:#ffe082; }
+.ing-tag.veg { background:#f1f8e9; color:#33691e; border-color:#c5e1a5; }
+.ing-tag.protein { background:#fce4ec; color:#880e4f; border-color:#f48fb1; }
+.ing-tag.other { background:#f3e5f5; color:#4a148c; border-color:#ce93d8; }
+.ing-tag:hover { filter:brightness(.95); transform:scale(1.03); }
+.new-dot { width:6px; height:6px; border-radius:50%; background:#ff5252; display:inline-block; flex-shrink:0; }
+
+/* ── チェックボックス行 ── */
+.check-row {
+  display:flex; align-items:center; gap:10px;
+  background:#fff5f5; border:1.5px solid #ffcdd2;
+  border-radius:10px; padding:10px 12px; margin-top:8px;
+  cursor:pointer; transition:all .15s;
+  user-select:none;
+}
+.check-row:hover { background:#ffebee; }
+.check-row.done { background:#f5f5f5; border-color:#e0e0e0; opacity:.7; }
+.check-box {
+  width:24px; height:24px; border:2px solid #ef9a9a; border-radius:7px;
+  background:white; display:flex; align-items:center; justify-content:center;
+  font-size:1rem; flex-shrink:0; transition:all .15s;
+}
+.check-row.done .check-box { background:#ef5350; border-color:#ef5350; color:white; }
+.check-label { font-size:.83rem; flex:1; }
+.check-label strong { color:#e53935; }
+.check-row.done .check-label { text-decoration:line-through; color:#aaa; }
+.check-row.done .check-label strong { color:#aaa; }
+.check-date { font-size:.72rem; color:#999; white-space:nowrap; }
+
+/* advice */
+.adv-card { border-radius:14px; padding:14px 16px; margin-bottom:10px; display:flex; gap:10px; align-items:flex-start; }
+.adv-card.allergy { background:#fff8e1; border-left:4px solid #ffca28; }
+.adv-card.nutrition { background:#e8f5e9; border-left:4px solid #66bb6a; }
+.adv-card.tip { background:#e3f2fd; border-left:4px solid #42a5f5; }
+.adv-icon { font-size:1.3rem; flex-shrink:0; }
+.adv-title { font-size:.8rem; font-weight:bold; margin-bottom:3px; }
+.adv-body { font-size:.8rem; line-height:1.5; color:#555; }
+
+/* history page */
+.sum-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:16px; }
+.sum-box { background:white; border-radius:14px; padding:14px; text-align:center; box-shadow:0 2px 8px rgba(0,0,0,.07); }
+.sum-box .num { font-size:1.8rem; font-weight:bold; color:#ff7043; line-height:1; }
+.sum-box .lbl { font-size:.72rem; color:#888; margin-top:4px; }
+
+.filter-bar { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px; }
+.f-btn { padding:5px 12px; border:1.5px solid #e0e0e0; border-radius:16px; background:white; font-size:.78rem; cursor:pointer; color:#666; transition:all .15s; }
+.f-btn.active { border-color:#ff7043; color:#ff7043; background:#fff3e0; font-weight:bold; }
+
+.food-section { margin-bottom:20px; }
+.food-section-ttl { font-size:.82rem; font-weight:bold; color:#888; margin-bottom:10px; display:flex; align-items:center; gap:6px; }
+.food-grid { display:flex; flex-wrap:wrap; gap:8px; }
+.food-card {
+  display:flex; flex-direction:column; align-items:center;
+  border:1.5px solid #e0e0e0; border-radius:12px; padding:8px 12px;
+  min-width:72px; position:relative; cursor:pointer; transition:all .15s;
+  background:white;
+}
+.food-card:hover { border-color:#ff7043; }
+.food-card.grain-card { border-color:#ffe082; background:#fffde7; }
+.food-card.veg-card { border-color:#c5e1a5; background:#f1f8e9; }
+.food-card.protein-card { border-color:#f48fb1; background:#fce4ec; }
+.food-card .fdot { width:8px; height:8px; border-radius:50%; margin-bottom:4px; }
+.food-card .fname { font-size:.82rem; font-weight:bold; color:#333; }
+.food-card .fdate { font-size:.68rem; color:#aaa; margin-top:2px; }
+.food-card .del-btn { position:absolute; top:-6px; right:-6px; width:18px; height:18px; background:#ef5350; color:white; border-radius:50%; font-size:.65rem; display:none; align-items:center; justify-content:center; cursor:pointer; border:none; }
+.food-card:hover .del-btn { display:flex; }
+
+.add-manual { display:flex; gap:8px; margin-bottom:16px; }
+.add-manual input { flex:1; padding:10px 14px; border:1.5px solid #e0e0e0; border-radius:10px; font-size:.85rem; outline:none; }
+.add-manual input:focus { border-color:#ff7043; }
+.add-manual select { padding:10px 8px; border:1.5px solid #e0e0e0; border-radius:10px; font-size:.82rem; outline:none; background:white; }
+.add-manual button { padding:10px 16px; background:#ff7043; color:white; border:none; border-radius:10px; font-size:.85rem; font-weight:bold; cursor:pointer; white-space:nowrap; }
+
+.clear-btn { padding:7px 14px; border:1.5px solid #ef5350; border-radius:16px; background:white; color:#ef5350; font-size:.78rem; cursor:pointer; font-weight:bold; }
+
+.empty-state { text-align:center; padding:40px 20px; color:#ccc; }
+.empty-state .ei { font-size:3rem; margin-bottom:10px; }
+.empty-state p { font-size:.85rem; }
+
+/* modal */
+.overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:1000; align-items:center; justify-content:center; padding:16px; }
+.overlay.open { display:flex; }
+.modal { background:white; border-radius:20px; max-width:480px; width:100%; max-height:80vh; overflow-y:auto; padding:24px; position:relative; box-shadow:0 8px 32px rgba(0,0,0,.2); }
+.modal-close { position:absolute; top:14px; right:16px; font-size:1.4rem; cursor:pointer; color:#bbb; background:none; border:none; }
+.modal-close:hover { color:#ff7043; }
+.mfood { font-size:1.2rem; font-weight:bold; color:#ff7043; margin-bottom:6px; }
+.mstage { font-size:.78rem; color:#999; margin-bottom:14px; }
+.msec { margin-bottom:14px; }
+.msec-ttl { font-size:.82rem; font-weight:bold; color:#666; margin-bottom:6px; }
+.msec p { font-size:.85rem; line-height:1.6; color:#444; }
+.msec ul { padding-left:16px; }
+.msec li { font-size:.85rem; line-height:1.7; color:#444; }
+.allergy-box { background:#fff3e0; border-radius:10px; padding:10px 12px; font-size:.82rem; color:#bf360c; display:flex; gap:8px; margin-bottom:10px; }
+
+/* toast */
+.toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(80px); background:rgba(40,40,40,.92); color:white; padding:10px 22px; border-radius:24px; font-size:.85rem; z-index:2000; transition:transform .28s ease; pointer-events:none; }
+.toast.show { transform:translateX(-50%) translateY(0); }
+
+/* ── スマホ対応 ── */
+* { -webkit-tap-highlight-color: transparent; }
+button, .age-btn, .quick-chip, .ing-tag, .check-row, .f-btn, .food-card, .tab-btn {
+  touch-action: manipulation;
+}
+@media (max-width: 600px) {
+  header h1 { font-size:1.1rem; }
+  header p { font-size:.7rem; }
+  .tab-btn { padding:12px 6px; font-size:.8rem; }
+  .container { padding:12px; }
+  .card { padding:14px; border-radius:12px; }
+
+  /* 月齢ボタン — 2列に収める */
+  .age-buttons { display:grid; grid-template-columns:repeat(2,1fr); }
+  .age-btn { padding:12px 8px; font-size:.82rem; text-align:center; min-height:44px; }
+
+  /* クイックチップ */
+  .quick-chip { padding:7px 12px; font-size:.78rem; min-height:36px; }
+
+  /* 食材タグ */
+  .ing-tag { padding:6px 12px; font-size:.8rem; min-height:36px; }
+
+  /* チェック行 */
+  .check-row { padding:12px 14px; }
+  .check-box { width:28px; height:28px; font-size:1.1rem; }
+  .check-label { font-size:.88rem; }
+
+  /* 食材記録の手動追加フォーム */
+  .add-manual { flex-direction:column; }
+  .add-manual input, .add-manual select, .add-manual button { width:100%; min-height:44px; }
+
+  /* フードカード — 削除ボタンは常に表示 */
+  .food-card .del-btn { display:flex !important; }
+  .food-card { min-width:64px; padding:8px; }
+  .food-card .fname { font-size:.8rem; }
+
+  /* モーダル */
+  .modal { max-height:90vh; padding:18px; border-radius:16px; }
+  .modal-close { top:10px; right:12px; font-size:1.8rem; min-width:44px; min-height:44px; display:flex; align-items:center; justify-content:center; }
+
+  /* サマリーグリッド */
+  .sum-grid { grid-template-columns:repeat(3,1fr); gap:8px; }
+  .sum-box .num { font-size:1.5rem; }
+  .sum-box { padding:10px 6px; }
+
+  /* トースト */
+  .toast { font-size:.8rem; padding:10px 18px; bottom:16px; max-width:90vw; text-align:center; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="top">
+    <h1>🍼 離乳食メニュープランナー</h1>
+    <p>月齢とストック食材から1週間のメニューを自動生成</p>
+  </div>
+  <div class="tabs">
+    <button class="tab-btn active" id="tab-planner" onclick="switchTab('planner')">📅 メニュー</button>
+    <button class="tab-btn" id="tab-history" onclick="switchTab('history')">✅ 食べた食材 <span class="cnt" id="eaten-cnt">0</span></button>
+  </div>
+</header>
+
+<!-- PAGE 1 -->
+<div class="page active" id="page-planner">
+<div class="container">
+
+  <div class="card">
+    <div class="card-title"><div class="badge">1</div>赤ちゃんの月齢を選んでください</div>
+    <div class="age-buttons">
+      <button class="age-btn" data-age="5" onclick="selectAge(5)">5ヶ月</button>
+      <button class="age-btn" data-age="6" onclick="selectAge(6)">6ヶ月</button>
+      <button class="age-btn" data-age="7" onclick="selectAge(7)">7ヶ月</button>
+      <button class="age-btn" data-age="8" onclick="selectAge(8)">8ヶ月</button>
+      <button class="age-btn" data-age="9" onclick="selectAge(9)">9ヶ月</button>
+      <button class="age-btn" data-age="10" onclick="selectAge(10)">10ヶ月</button>
+      <button class="age-btn" data-age="11" onclick="selectAge(11)">11ヶ月</button>
+      <button class="age-btn" data-age="12" onclick="selectAge(12)">1才〜</button>
+    </div>
+    <div class="stage-desc" id="stage-desc"></div>
+    <!-- 5ヶ月のみ表示する週数選択 -->
+    <div id="week-select" style="display:none;margin-top:12px;">
+      <div style="font-size:.82rem;font-weight:bold;color:#888;margin-bottom:8px;">📅 離乳食を始めて何週目ですか？</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="week-btn" data-week="1" onclick="selectWeek(1)">1週目<br><span style="font-size:.7rem;font-weight:normal">おかゆのみ</span></button>
+        <button class="week-btn" data-week="2" onclick="selectWeek(2)">2週目<br><span style="font-size:.7rem;font-weight:normal">主食＋野菜</span></button>
+        <button class="week-btn" data-week="3" onclick="selectWeek(3)">3週目以降<br><span style="font-size:.7rem;font-weight:normal">主食＋野菜＋タンパク質</span></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><div class="badge">2</div>ストック食材を入力してください</div>
+    <div class="ingredient-groups">
+      <div>
+        <div class="ig-label"><span class="dot dot-grain"></span>主食・炭水化物</div>
+        <div class="tag-input-area" onclick="document.getElementById('g-in').focus()">
+          <div id="grain-tags"></div>
+          <input class="tag-input" id="g-in" placeholder="例: おかゆ" onkeydown="tagKey(event,'grain')">
+        </div>
+        <div class="quick-add" id="grain-quick"></div>
+      </div>
+      <div>
+        <div class="ig-label"><span class="dot dot-veg"></span>野菜・果物</div>
+        <div class="tag-input-area" onclick="document.getElementById('v-in').focus()">
+          <div id="veg-tags"></div>
+          <input class="tag-input" id="v-in" placeholder="例: にんじん" onkeydown="tagKey(event,'veg')">
+        </div>
+        <div class="quick-add" id="veg-quick"></div>
+      </div>
+      <div>
+        <div class="ig-label"><span class="dot dot-protein"></span>タンパク質</div>
+        <div class="tag-input-area" onclick="document.getElementById('p-in').focus()">
+          <div id="protein-tags"></div>
+          <input class="tag-input" id="p-in" placeholder="例: 豆腐" onkeydown="tagKey(event,'protein')">
+        </div>
+        <div class="quick-add" id="protein-quick"></div>
+      </div>
+    </div>
+  </div>
+
+  <button class="gen-btn" onclick="generateMenu()">✨ 1週間のメニューを作る</button>
+
+  <div id="menu-result">
+    <div class="card" style="margin-top:16px;">
+      <div class="menu-hdr">
+        <div class="menu-ttl">📅 今週の離乳食メニュー</div>
+        <button class="regen-btn" onclick="generateMenu()">🔄 作り直す</button>
+      </div>
+      <div id="menu-days"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">💡 ワンポイントアドバイス</div>
+      <div id="advice-area"></div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- PAGE 2 -->
+<div class="page" id="page-history">
+<div class="container">
+
+  <div class="sum-grid">
+    <div class="sum-box"><div class="num" id="cnt-total">0</div><div class="lbl">食べた食材 合計</div></div>
+    <div class="sum-box"><div class="num" id="cnt-month">0</div><div class="lbl">今月 新規</div></div>
+    <div class="sum-box"><div class="num" id="cnt-allergy">0</div><div class="lbl">アレルギー食材</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title" style="margin-bottom:10px;">➕ 食材を手動で追加</div>
+    <div class="add-manual">
+      <input type="text" id="m-food" placeholder="食材名を入力" onkeydown="if(event.key==='Enter')addManual()">
+      <select id="m-cat">
+        <option value="grain">主食</option>
+        <option value="veg">野菜</option>
+        <option value="protein">タンパク質</option>
+        <option value="other">その他</option>
+      </select>
+      <button onclick="addManual()">追加</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <div class="card-title" style="margin-bottom:0;">🥗 食べた食材一覧</div>
+      <button class="clear-btn" onclick="clearAll()">全削除</button>
+    </div>
+    <div class="filter-bar">
+      <button class="f-btn active" id="f-all" onclick="setFilter('all')">すべて</button>
+      <button class="f-btn" id="f-grain" onclick="setFilter('grain')">🌾 主食</button>
+      <button class="f-btn" id="f-veg" onclick="setFilter('veg')">🥦 野菜</button>
+      <button class="f-btn" id="f-protein" onclick="setFilter('protein')">🍳 タンパク質</button>
+      <button class="f-btn" id="f-other" onclick="setFilter('other')">その他</button>
+    </div>
+    <div id="eaten-list"></div>
+  </div>
+
+</div>
+</div>
+
+<!-- MODAL -->
+<div class="overlay" id="overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ========== DATA ==========
+const STAGES = {
+  5:{name:'ごっくん期',sub:'なめらかペースト',meals:1,desc:'1日1回食。なめらかペースト状。まずおかゆから始め、野菜・豆腐へ。'},
+  6:{name:'ごっくん期',sub:'なめらかペースト',meals:1,desc:'1日1回食。なめらかペースト。いろいろな食材を少しずつ試す時期。'},
+  7:{name:'もぐもぐ期',sub:'7倍がゆ・みじん切り～つぶつぶ',meals:2,desc:'1日2回食。舌でつぶせるやわらかさ（豆腐くらい）。'},
+  8:{name:'もぐもぐ期',sub:'7倍がゆ・みじん切り',meals:2,desc:'1日2回食。みじん切り〜粗めのつぶつぶ。食材の種類を増やす。'},
+  9:{name:'かみかみ期',sub:'5倍がゆ・粗みじん切り',meals:3,desc:'1日3回食。歯ぐきでつぶせるやわらかさ。コロコロ状・粗みじん切り。'},
+  10:{name:'かみかみ期',sub:'5倍がゆ・コロコロ状',meals:3,desc:'1日3回食。歯ぐきでしっかりつぶせる固さ。食材の幅が広がる。'},
+  11:{name:'かみかみ期',sub:'5倍がゆ・コロコロ状',meals:3,desc:'1日3回食。大人の食事に少しずつ近づけていく。おやつもOK。'},
+  12:{name:'ぱくぱく期',sub:'軟飯〜普通ご飯・一口大',meals:3,desc:'1日3回食＋おやつ。歯でかめる固さ。食材・味付けの幅が大きく広がる。'}
+};
+const QI={
+  grain:['おかゆ','うどん','食パン','そうめん','コーンフレーク','じゃがいも','さつまいも'],
+  veg:['にんじん','かぼちゃ','ほうれん草','ブロッコリー','たまねぎ','トマト','大根','小松菜','キャベツ','なす','ピーマン','アボカド','バナナ','りんご','いちご'],
+  protein:['豆腐','白身魚','しらす','鶏ささみ','鶏むね肉','卵','ツナ缶','納豆','ヨーグルト','牛乳','チーズ','豚ひき肉','高野豆腐','きな粉']
+};
+const FDB={
+  'おかゆ':{cat:'grain',minAge:5,prep:{5:'10倍がゆ。米1に水10で炊いてなめらかにすりつぶす。',7:'7倍がゆ。粒を少し残す。',9:'5倍がゆ。',12:'軟飯〜普通ご飯。'},tip:'エネルギー源。毎食の主食に。消化がよく最初の離乳食に最適。'},
+  'うどん':{cat:'grain',minAge:7,prep:{7:'やわらかく茹でてみじん切りに。塩分は必ず茹でこぼす。',9:'やわらかく茹でて1cm程度に切る。',12:'大人と同じ茹で時間でOK。'},tip:'小麦アレルギーに注意。最初は少量から。',allergy:'小麦アレルゲン。初めて与える際は少量から。'},
+  '食パン':{cat:'grain',minAge:7,prep:{7:'耳を除いてちぎり、少量の水かミルクでやわらかくする。',9:'小さくちぎってそのままか、ミルクに浸して。',12:'トーストしてもOK。一口サイズに。'},tip:'小麦・乳アレルギーに注意。添加物の少ないものを選ぶ。',allergy:'小麦・乳アレルゲン含む場合あり。'},
+  'そうめん':{cat:'grain',minAge:7,prep:{7:'やわらかく茹でて塩を茹でこぼし、みじん切りに。',9:'1〜2cm程度に切って。',12:'短く切るとよい。'},tip:'小麦アレルギーに注意。塩分をしっかり落とす。',allergy:'小麦アレルゲン。塩分を茹でこぼして除く。'},
+  'じゃがいも':{cat:'grain',minAge:5,prep:{5:'やわらかく茹でてなめらかにすりつぶす。だし汁でのばして。',7:'やわらかく茹でて粗くつぶす。',9:'1cm角に切ってやわらかく茹でる。',12:'一口大。炒め煮・ポタージュなど。'},tip:'ビタミンCが豊富。エネルギー源にもなる。皮はしっかり除く。'},
+  'さつまいも':{cat:'grain',minAge:5,prep:{5:'やわらかく茹でてすりつぶし、だし汁でのばす。',7:'やわらかく茹でて粗くつぶす。',9:'1cm角にやわらかく茹でる。',12:'一口大。煮物・スープに。'},tip:'自然な甘みで食べやすい。ビタミンC・食物繊維が豊富。'},
+  'にんじん':{cat:'veg',minAge:5,prep:{5:'やわらかく茹でてすりつぶし、だし汁でのばす。',7:'やわらかく茹でてみじん切りに。',9:'みじん切り〜粗みじん切りでやわらかく茹でる。',12:'薄切り〜乱切りでやわらかく。'},tip:'βカロテン・ビタミンが豊富。甘みがあり食べやすい。'},
+  'かぼちゃ':{cat:'veg',minAge:5,prep:{5:'種と皮を除いてやわらかく茹でてすりつぶす。',7:'やわらかく茹でて粗くつぶすかみじん切り。',9:'1cm角でやわらかく煮る。',12:'一口大で煮物やスープに。'},tip:'βカロテン・ビタミンC・食物繊維が豊富。甘みで食べやすい。'},
+  'ほうれん草':{cat:'veg',minAge:5,prep:{5:'葉先だけやわらかく茹でてすりつぶす。アクを水にさらす。',7:'やわらかく茹でてみじん切りに。',9:'やわらかく茹でて粗みじん切り。',12:'やわらかく茹でて1cm程度に。'},tip:'鉄分・葉酸が豊富。アクを必ずさらすこと。葉先を使う。'},
+  'ブロッコリー':{cat:'veg',minAge:5,prep:{5:'穂先をやわらかく茹でてすりつぶす。',7:'やわらかく茹でてみじん切りに。',9:'やわらかく茹でて小房に分ける。',12:'やわらかく茹でてそのまま。'},tip:'ビタミンC・葉酸が豊富。穂先部分が食べやすい。'},
+  'たまねぎ':{cat:'veg',minAge:5,prep:{5:'やわらかく茹でてすりつぶす。',7:'やわらかく茹でてみじん切りに。',9:'みじん切りでよく炒めるか煮る。',12:'薄切りでよく炒める。'},tip:'甘みが出て食べやすい。よく加熱して辛みをとばす。'},
+  'トマト':{cat:'veg',minAge:5,prep:{5:'皮と種を除いてすりつぶす。加熱して甘みを出す。',7:'皮と種を除いてみじん切りにして加熱。',9:'皮を湯むきして粗みじん切り。',12:'湯むきして一口大。'},tip:'リコピン・ビタミンCが豊富。必ず皮と種を除く。加熱すると甘みが増す。'},
+  '大根':{cat:'veg',minAge:5,prep:{5:'やわらかく茹でてすりつぶす。',7:'やわらかく煮てみじん切り。',9:'みじん切り〜粗みじん切りで煮る。',12:'薄切りでよく煮る。'},tip:'消化を助ける酵素を含む。ビタミンCも豊富。'},
+  '小松菜':{cat:'veg',minAge:5,prep:{5:'葉先をやわらかく茹でてすりつぶす。',7:'やわらかく茹でてみじん切りに。',9:'やわらかく茹でて粗みじん切り。',12:'やわらかく茹でて1〜2cm。'},tip:'カルシウム・鉄分が豊富。ほうれん草より扱いやすい。アクが少ない。'},
+  'キャベツ':{cat:'veg',minAge:5,prep:{5:'やわらかく茹でてすりつぶす。',7:'やわらかく茹でてみじん切りに。',9:'やわらかく茹でて粗みじん切り。',12:'やわらかく茹でてざく切り。'},tip:'ビタミンCが豊富。消化がよく胃に優しい。'},
+  'なす':{cat:'veg',minAge:7,prep:{7:'皮を除いてやわらかく茹でてみじん切り。',9:'皮を除いて1cm角でやわらかく炒め煮。',12:'皮を除いて一口大で炒め煮。'},tip:'水にさらしてアクを抜く。皮は固いので除く。'},
+  'ピーマン':{cat:'veg',minAge:9,prep:{9:'やわらかく茹でてみじん切りに。苦みが気になる場合は少量から。',12:'薄切りで炒める。'},tip:'ビタミンCが豊富。苦みを感じる子も多いので最初は少量から。'},
+  'アボカド':{cat:'veg',minAge:7,prep:{7:'種と皮を除してすりつぶす。加熱しなくてOK。',9:'種と皮を除して粗くつぶす。',12:'種と皮を除して一口大。'},tip:'良質な脂質・ビタミンE。熟したものを使う。酸化しやすいので使う直前に。'},
+  'バナナ':{cat:'veg',minAge:6,prep:{5:'熟したものをすりつぶす。加熱不要。',7:'熟したものをつぶすか粗くつぶす。',9:'5mmの輪切り。',12:'一口大。'},tip:'エネルギー源にもなる。自然な甘みで食べやすい。便秘にも効果的。'},
+  'りんご':{cat:'veg',minAge:6,prep:{5:'皮を除いてすりおろすか、やわらかく加熱してすりつぶす。',7:'皮を除いてすりおろすかみじん切り。',9:'皮を除いて5mm角。',12:'皮を除いて一口大。'},tip:'ビタミンC・食物繊維が豊富。生のままでもOK。'},
+  'いちご':{cat:'veg',minAge:6,prep:{5:'ヘタを除いてすりつぶす。種が気になれば裏ごし。',7:'ヘタを除してつぶすか小さく切る。',9:'ヘタを除して4等分。',12:'ヘタを除して一口大。'},tip:'ビタミンCが豊富。甘みと酸味。最初は少量から確認。'},
+  '豆腐':{cat:'protein',minAge:5,prep:{5:'やわらかく茹でてなめらかにすりつぶす。絹ごしを使う。',7:'やわらかく茹でてスプーンでつぶすかみじん切り。',9:'1cm角に切って加熱。',12:'一口大に切って加熱。'},tip:'植物性タンパク質が豊富。消化しやすく離乳食に最適。絹ごし豆腐が扱いやすい。'},
+  '白身魚':{cat:'protein',minAge:5,prep:{5:'加熱してほぐし、骨を取り除いてすりつぶす。',7:'加熱してほぐしてみじん切りに。',9:'加熱してほぐして粗くほぐす。',12:'加熱して一口大に。'},tip:'タラ・カレイなどが扱いやすい。必ず骨を取り除く。淡白で食べやすい。'},
+  'しらす':{cat:'protein',minAge:5,prep:{5:'熱湯をかけて塩分を抜き、すりつぶす。',7:'熱湯で塩分を抜いてそのまま使用。',9:'熱湯で塩分を抜いてそのまま。',12:'熱湯で塩分を抜いてそのまま。'},tip:'DHA・カルシウムが豊富。必ず塩分を茹でこぼして抜く。'},
+  '鶏ささみ':{cat:'protein',minAge:7,prep:{7:'筋を取ってやわらかく茹でてすりつぶすかみじん切り。',9:'筋を取って茹でてほぐして粗みじん。',12:'筋を取って茹でて一口大。'},tip:'高タンパク低脂肪。筋をしっかり除く。パサつく場合は片栗粉でまとめると◎。'},
+  '鶏むね肉':{cat:'protein',minAge:9,prep:{9:'皮を除いて茹でてみじん切りに。',12:'皮を除いて茹でて一口大に。'},tip:'高タンパク。パサつきやすいのでとろみをつけると食べやすい。'},
+  '卵':{cat:'protein',minAge:6,isAllergy:true,prep:{6:'卵のステップ進行中。次のステップをご確認ください。',7:'固ゆでの卵黄のみ。耳かき1杯から少量ずつ試す。',9:'全卵OK。固ゆでたまご・卵とじなど。',12:'炒り卵・オムレツなど。'},tip:'アレルギー特定原材料。ステップに従って少量ずつ進めます。',allergy:'アレルギー特定原材料（卵）。必ずかかりつけ医に確認してから始める。'},
+  '卵(耳かき1杯)':{cat:'protein',minAge:6,isEggStep:true,prep:{6:'固ゆで卵黄を耳かき1杯分だけ取り出し、お湯少量で溶きのばす。午前中に試して2〜3時間様子を見る。',7:'固ゆで卵黄を耳かき1杯分。お粥やスープに混ぜてもよい。'},tip:'卵アレルギー確認の第一歩。必ず午前中に。異常があればすぐ受診。',allergy:'卵アレルゲン。耳かき1杯の極少量から開始。'},
+  '卵(耳かき2杯)':{cat:'protein',minAge:6,isEggStep:true,prep:{6:'固ゆで卵黄を耳かき2杯分。前回から2〜4日あけて問題なければ進める。',7:'固ゆで卵黄を耳かき2杯分。'},tip:'前回から問題なければ次のステップへ。異常があれば中断して受診。',allergy:'卵アレルゲン。'},
+  '卵(耳かき3杯)':{cat:'protein',minAge:6,isEggStep:true,prep:{6:'固ゆで卵黄を耳かき3杯分。前回から2〜4日あけて進める。',7:'固ゆで卵黄を耳かき3杯分。'},tip:'少しずつ量を増やしながら様子を見る。',allergy:'卵アレルゲン。'},
+  '卵(小さじ1/4)':{cat:'protein',minAge:6,isEggStep:true,prep:{6:'固ゆで卵黄を小さじ1/4。前回から2〜4日あけて進める。',7:'固ゆで卵黄小さじ1/4。'},tip:'スプーン量に移行。変化がなければ次のステップへ。',allergy:'卵アレルゲン。'},
+  '卵(小さじ1/2)':{cat:'protein',minAge:6,isEggStep:true,prep:{6:'固ゆで卵黄を小さじ1/2。前回から2〜4日あけて進める。',7:'固ゆで卵黄小さじ1/2。'},tip:'卵黄の半量程度。問題なければ次のステップへ。',allergy:'卵アレルゲン。'},
+  '卵(小さじ1)':{cat:'protein',minAge:6,isEggStep:true,prep:{6:'固ゆで卵黄を小さじ1。前回から2〜4日あけて進める。',7:'固ゆで卵黄小さじ1。'},tip:'1回に小さじ1が目安。問題なければ卵黄全量へ。',allergy:'卵アレルゲン。'},
+  '卵(小さじ2)':{cat:'protein',minAge:6,isEggStep:true,prep:{6:'固ゆで卵黄を小さじ2。前回から2〜4日あけて進める。',7:'固ゆで卵黄小さじ2。'},tip:'卵黄全量に近づいてきました。',allergy:'卵アレルゲン。'},
+  '卵黄(1/2個分)':{cat:'protein',minAge:6,isEggStep:true,prep:{6:'固ゆで卵黄を1/2個分。前回から2〜4日あけて進める。',7:'固ゆで卵黄1/2個分。'},tip:'卵黄の半個分。このステップをクリアできれば卵黄1個へ。',allergy:'卵アレルゲン。'},
+  '卵黄(1個分)':{cat:'protein',minAge:6,isEggStep:true,prep:{6:'固ゆで卵黄を1個分まるごと。ここまで来たら卵黄クリア！次は卵白（9ヶ月以降）へ。',7:'固ゆで卵黄1個分。よく頑張りました！'},tip:'卵黄ステップ完了！次は9ヶ月以降に卵白を少量から試します。',allergy:'卵アレルゲン。'},
+  'ツナ缶':{cat:'protein',minAge:7,prep:{7:'水煮のノンオイルを熱湯でほぐしてみじん切り。',9:'水煮のノンオイルをほぐして使う。',12:'水煮のノンオイルをそのまま。'},tip:'必ず水煮・ノンオイルのものを使う。塩分に注意。食塩無添加が理想。'},
+  '納豆':{cat:'protein',minAge:7,prep:{7:'ひきわり納豆を熱湯でさっと洗って粘りを取り、みじん切りに。',9:'ひきわり納豆をそのまま使う。',12:'ひきわりまたは通常の粒。'},tip:'タンパク質・ビタミンK・食物繊維が豊富。ひきわりが扱いやすい。初めは少量から。'},
+  'ヨーグルト':{cat:'protein',minAge:5,prep:{5:'無糖・プレーンをそのまま少量。',7:'無糖・プレーンをそのまま。果物を混ぜてもOK。',9:'無糖・プレーンをそのまま。',12:'無糖・プレーンをそのまま。'},tip:'乳アレルギーに注意。必ず無糖プレーンを使用。カルシウムが豊富。',allergy:'乳アレルゲン含む。乳アレルギーの場合は使用不可。'},
+  '牛乳':{cat:'protein',minAge:9,isAllergy:true,prep:{9:'加熱して少量から。料理に使う程度ならOK。',12:'飲み物としてOK。'},tip:'乳アレルギーに注意。1才未満は飲み物として与えず料理のみ使用。',allergy:'乳アレルゲン含む。1才未満は飲み物としてでなく、加熱調理にのみ使用する。'},
+  'チーズ':{cat:'protein',minAge:9,isAllergy:true,prep:{9:'カッテージチーズや塩分の少ないプロセスチーズを少量。',12:'塩分の少ないものを少量。'},tip:'乳アレルギーに注意。塩分が高いので少量に。カルシウムが豊富。',allergy:'乳アレルゲン含む。塩分が高いため使いすぎに注意。'},
+  '豚ひき肉':{cat:'protein',minAge:9,prep:{9:'しっかり加熱してそぼろ状に。脂肪分の多いものは避ける。',12:'そぼろ・ハンバーグなどに。'},tip:'鉄分・タンパク質が豊富。脂肪分の少ないものを選ぶ。必ずしっかり加熱。'},
+  '高野豆腐':{cat:'protein',minAge:7,prep:{7:'水で戻してやわらかくして絞り、みじん切りに。',9:'水で戻してやわらかくして1cm角。',12:'水で戻して一口大。'},tip:'タンパク質・カルシウム・鉄分が豊富。保存食として使いやすい。'},
+  'きな粉':{cat:'protein',minAge:5,prep:{5:'おかゆや野菜ペーストに小さじ1/4から混ぜる。',7:'ヨーグルトやおかゆに混ぜる。',9:'料理に混ぜるかそのまま少量。',12:'料理や間食に。'},tip:'大豆アレルギーに注意。植物性タンパク質・鉄分が豊富。自然な甘みで使いやすい。',allergy:'大豆製品。初めて与える際は少量から。'},
+  'コーンフレーク':{cat:'grain',minAge:9,prep:{9:'ミルクやだし汁でやわらかくしてから使う。無糖のものを。',12:'ミルクをかけてそのまま。'},tip:'無糖・プレーンのものを選ぶ。鉄分強化タイプもある。'}
+};
+const TPL={
+  // 5ヶ月 週ごと（meal.name はメニュー上部ラベル。おかゆは常に含むが表示しない）
+  w1:[{time:'昼',name:'離乳食',g:1,v:0,p:0}],
+  w2:[{time:'昼',name:'野菜',g:1,v:1,p:0}],
+  w3:[{time:'昼',name:'野菜＋タンパク質',g:1,v:1,p:1}],
+  // 6ヶ月〜
+  early6:[{time:'昼',name:'野菜＋タンパク質',g:1,v:2,p:1}],
+  middle:[{time:'朝',name:'野菜＋タンパク質',g:1,v:1,p:1},{time:'昼',name:'野菜＋タンパク質',g:1,v:1,p:1}],
+  late:[{time:'朝',name:'野菜＋タンパク質',g:1,v:1,p:1},{time:'昼',name:'野菜＋タンパク質',g:1,v:1,p:1},{time:'夜',name:'野菜＋タンパク質',g:1,v:1,p:1}],
+  finish:[{time:'朝',name:'野菜＋タンパク質',g:1,v:1,p:1},{time:'昼',name:'野菜＋タンパク質',g:1,v:2,p:1},{time:'夜',name:'野菜＋タンパク質',g:1,v:1,p:1}]
+};
+const DAYS=['月','火','水','木','金','土','日'];
+// 卵の段階的導入ステップ（順番厳守）
+const EGG_STEPS=['卵(耳かき1杯)','卵(耳かき2杯)','卵(耳かき3杯)','卵(小さじ1/4)','卵(小さじ1/2)','卵(小さじ1)','卵(小さじ2)','卵黄(1/2個分)','卵黄(1個分)'];
+
+// ========== STATE ==========
+let selAge=null, selWeek=null, ings={grain:[],veg:[],protein:[]}, curFilter='all';
+
+// ========== LOCALSTORAGE ==========
+function load(){try{return JSON.parse(localStorage.getItem('rin_eaten')||'[]')}catch{return[]}}
+function save(a){localStorage.setItem('rin_eaten',JSON.stringify(a))}
+function isEaten(n){return load().some(f=>f.name===n)}
+function markEaten(name,cat){
+  const a=load();
+  if(a.some(f=>f.name===name))return false;
+  const today=new Date().toLocaleDateString('ja-JP',{year:'numeric',month:'2-digit',day:'2-digit'}).replace(/\//g,'-');
+  a.push({id:Date.now(),name,cat:cat||(FDB[name]?.cat||'other'),date:today});
+  save(a);
+  refreshBadge();
+  toast('✅「'+name+'」を食べた食材に記録しました');
+  return true;
+}
+function unmarkEaten(name){
+  save(load().filter(f=>f.name!==name));
+  refreshBadge();
+  toast('「'+name+'」の記録を取り消しました');
+}
+function removeById(id){
+  save(load().filter(f=>f.id!==id));
+  refreshBadge();
+  renderHistory();
+}
+function refreshBadge(){
+  document.getElementById('eaten-cnt').textContent=load().length;
+}
+
+// ========== TAB ==========
+function switchTab(t){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+t).classList.add('active');
+  document.getElementById('tab-'+t).classList.add('active');
+  if(t==='history') renderHistory();
+}
+
+// ========== AGE ==========
+function selectAge(a){
+  selAge=a;
+  selWeek=a===5?null:1; // 5ヶ月は週数を別途選択
+  document.querySelectorAll('.age-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelector('.age-btn[data-age="'+a+'"]').classList.add('active');
+  const s=STAGES[a];
+  const d=document.getElementById('stage-desc');
+  d.style.display='block';
+  d.innerHTML='<strong>【'+s.name+'】'+s.sub+'</strong><br>'+s.desc;
+  // 5ヶ月のみ週数選択を表示
+  const ws=document.getElementById('week-select');
+  ws.style.display=a===5?'block':'none';
+  document.querySelectorAll('.week-btn').forEach(b=>b.classList.remove('active'));
+  updateQuick();
+}
+function selectWeek(w){
+  selWeek=w;
+  document.querySelectorAll('.week-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelector('.week-btn[data-week="'+w+'"]').classList.add('active');
+}
+function updateQuick(){
+  if(!selAge)return;
+  ['grain','veg','protein'].forEach(cat=>{
+    const c=document.getElementById(cat+'-quick');
+    c.innerHTML='';
+    QI[cat].forEach(item=>{
+      const f=FDB[item];
+      if(f&&f.minAge<=selAge&&!ings[cat].includes(item)){
+        const b=document.createElement('button');
+        b.className='quick-chip'; b.textContent='+ '+item;
+        b.onclick=()=>addIng(cat,item);
+        c.appendChild(b);
+      }
+    });
+  });
+}
+
+// ========== TAGS ==========
+const INP={grain:'g-in',veg:'v-in',protein:'p-in'};
+function tagKey(e,cat){
+  if(e.key==='Enter'||e.key===','){
+    e.preventDefault();
+    const v=e.target.value.trim().replace(/,/g,'');
+    if(v){addIng(cat,v);e.target.value='';}
+  }
+  if(e.key==='Backspace'&&e.target.value===''&&ings[cat].length){
+    rmIng(cat,ings[cat].length-1);
+  }
+}
+function addIng(cat,name){
+  if(!ings[cat].includes(name)){ings[cat].push(name);renderTags(cat);updateQuick();}
+}
+function rmIng(cat,i){ings[cat].splice(i,1);renderTags(cat);updateQuick();}
+function renderTags(cat){
+  const c=document.getElementById(cat+'-tags');
+  c.innerHTML='';
+  ings[cat].forEach((item,i)=>{
+    const t=document.createElement('span');
+    t.className='tag';
+    t.innerHTML=item+' <span class="rm" onclick="rmIng(\''+cat+'\','+i+')">×</span>';
+    c.appendChild(t);
+  });
+}
+
+// ========== MENU GENERATION ==========
+function allIngs(){return[...ings.grain,...ings.veg,...ings.protein].filter(f=>!FDB[f]||FDB[f].minAge<=selAge);}
+function getTpl(){
+  if(selAge===5){
+    if(selWeek===1)return TPL.w1;
+    if(selWeek===2)return TPL.w2;
+    return TPL.w3; // 3週目以降
+  }
+  return selAge===6?TPL.early6:selAge<=8?TPL.middle:selAge<=11?TPL.late:TPL.finish;
+}
+function pickOne(pool,used){
+  const fresh=pool.filter(f=>!used.has(f));
+  const c=fresh.length?fresh[Math.floor(Math.random()*fresh.length)]:pool[Math.floor(Math.random()*pool.length)];
+  used.add(c); return c;
+}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+function generateMenu(){
+  if(!selAge){alert('月齢を選択してください');return;}
+  if(selAge===5&&!selWeek){alert('何週目か選択してください');return;}
+  const ai=allIngs();
+  const minIng=(selAge===5&&selWeek===1)?1:2;
+  if(ai.length<minIng){alert('食材を'+minIng+'つ以上入力してください');return;}
+  const tpl=getTpl();
+  const menu=[];
+  const used=new Set();
+  // 食べた食材は新食材候補から除外
+  const eatenNames=new Set(load().map(f=>f.name));
+
+  // ── 卵ステップ処理 ──
+  // ストックに「卵」があり月齢6以上なら、次の未完了ステップをnewFood候補に追加
+  let currentEggStep=null;
+  if(ings.protein.includes('卵')&&selAge>=6){
+    const nextIdx=EGG_STEPS.findIndex(s=>!eatenNames.has(s));
+    if(nextIdx>=0)currentEggStep=EGG_STEPS[nextIdx];
+  }
+
+  // pool の対象カテゴリを週・月齢で制限
+  const poolBase=[...ai].filter(f=>{
+    if(eatenNames.has(f))return false;
+    if(f==='おかゆ')return false;
+    if(f==='卵')return false; // 卵はステップ管理するため通常poolから除外
+    // 卵ステップ自体もここでは除外（後で個別追加）
+    if(EGG_STEPS.includes(f))return false;
+    const cat=FDB[f]?.cat||'other';
+    if(selAge===5&&selWeek===2)return cat==='veg';
+    if(selAge===5&&selWeek===3)return true;
+    return true;
+  });
+  // 卵ステップはpoolには入れず、別途管理（pool枯渇時に2日おきで補完）
+  let eggStepIdx=EGG_STEPS.findIndex(s=>!eatenNames.has(s));
+  // 5ヶ月2週目：小松菜・にんじん・かぼちゃを優先的に先頭へ
+  const WEEK2_PRIORITY=['小松菜','にんじん','かぼちゃ'];
+  let pool;
+  if(selAge===5&&selWeek===2){
+    const priority=WEEK2_PRIORITY.filter(f=>poolBase.includes(f)&&!eatenNames.has(f));
+    const rest=shuffle(poolBase.filter(f=>!WEEK2_PRIORITY.includes(f)));
+    pool=[...priority,...rest];
+  } else {
+    pool=shuffle(poolBase);
+  }
+  let pi=0;
+  const weekIntroduced=[]; // 今週すでに新食材として導入した食材を蓄積
+
+  for(let d=0;d<7;d++){
+    let newFood=null;
+    if(selAge===5&&selWeek===1&&d===0){
+      // 5ヶ月1週目の月曜だけおかゆを新食材に（未食の場合のみ）
+      if(!eatenNames.has('おかゆ'))newFood='おかゆ';
+    } else if(selAge===5&&selWeek===1){
+      // 5ヶ月1週目の2日目以降は新食材なし
+      newFood=null;
+    } else if(d===6){
+      // 日曜日は病院が休みのため新食材なし
+      newFood=null;
+    } else if(d%2===0){
+      // 2日に1回新食材
+      const prevNewFood=d>0?menu[d-1]?.newFood:null;
+      if(pi<pool.length){
+        // poolに候補あり
+        let candidate=pool[pi];
+        if(candidate&&candidate===prevNewFood&&pi+1<pool.length){
+          pi++; candidate=pool[pi];
+        }
+        newFood=candidate||null;
+        if(newFood)pi++;
+      } else if(ings.protein.includes('卵')&&selAge>=6&&eggStepIdx<EGG_STEPS.length){
+        // pool枯渇時：卵ステップを2日おきに補完
+        newFood=EGG_STEPS[eggStepIdx++];
+      }
+    }
+    const day={meals:[], newFood:newFood};
+
+    const is5m=(selAge===5);
+    const ageOk=f=>!FDB[f]||FDB[f].minAge<=selAge;
+    // 食べ済み + 今週すでに導入した食材 = 使える食材
+    const safeNames=new Set([...eatenNames,...weekIntroduced]);
+
+    const G_all=is5m
+      ?(selWeek<=2?['おかゆ']:ings.grain.filter(f=>ageOk(f)&&(safeNames.has(f)||f==='おかゆ')))
+      :ings.grain.filter(f=>ageOk(f)&&safeNames.has(f));
+    const G=G_all.length?G_all:['おかゆ'];
+    const V=(is5m&&selWeek===1)?[]:ings.veg.filter(f=>ageOk(f)&&safeNames.has(f));
+    const P=(is5m&&(selWeek===1||selWeek===2))?[]:ings.protein.filter(f=>ageOk(f)&&safeNames.has(f));
+    const prevV=d>0?menu[d-1].meals.flatMap(m=>m.ings.map(i=>i.name)):[];
+    const prevP=d>0?menu[d-1].meals.flatMap(m=>m.ings.filter(i=>i.cat==='protein').map(i=>i.name)):[];
+
+    tpl.forEach((meal,mi)=>{
+      const mis=[];
+      if(meal.g&&G.length)mis.push({name:pickOne(G,used),cat:'grain'});
+
+      if(is5m){
+        // 5ヶ月：食べ済み＋今週導入済みの野菜を全部表示（最大3個）
+        // newFoodが野菜の場合は枠を1つ残す（max2→+newFood=3）
+        const newFoodIsVeg=newFood&&(FDB[newFood]?.cat||'other')==='veg';
+        // 5ヶ月は野菜1種類。新食材が野菜の日は既存野菜を出さない（newFoodで補う）
+        if(meal.v>0&&!newFoodIsVeg&&V.length){
+          // 前日と被らないようにランダム選択
+          const freshV=V.filter(f=>!prevV.includes(f));
+          const pickV=freshV.length?freshV:V;
+          const chosen=pickV[Math.floor(Math.random()*pickV.length)];
+          mis.push({name:chosen,cat:'veg'});
+        }
+        // タンパク質（3週目以降）
+        if(meal.p&&P.length)mis.push({name:pickOne(P,used),cat:'protein'});
+      } else {
+        // 他月齢：従来通りpickOneで1〜2個
+        for(let i=0;i<meal.v;i++){
+          const fv=V.filter(f=>!prevV.includes(f));
+          const vp=fv.length?fv:V;
+          if(vp.length)mis.push({name:pickOne(vp,used),cat:'veg'});
+        }
+        if(meal.p&&P.length){
+          const fp=P.filter(f=>!prevP.includes(f));
+          mis.push({name:pickOne(fp.length?fp:P,used),cat:'protein'});
+        }
+      }
+
+      // newFood を最初の食事に追加（上書きせず末尾に追加）
+      if(newFood&&mi===0&&!mis.some(x=>x.name===newFood)){
+        mis.push({name:newFood,cat:FDB[newFood]?.cat||'other'});
+        used.add(newFood);
+      }
+
+      // 表示順を主食→野菜→タンパク質に整列
+      const catOrder={grain:0,veg:1,protein:2,other:3};
+      mis.sort((a,b)=>(catOrder[a.cat]||3)-(catOrder[b.cat]||3));
+      day.meals.push({time:meal.time,name:meal.name,ings:mis});
+    });
+    // この日の新食材を記録 → 翌日以降のメニューで使えるようにする
+    if(newFood&&!weekIntroduced.includes(newFood))weekIntroduced.push(newFood);
+    menu.push(day);
+  }
+
+  renderMenu(menu);
+  renderAdvice();
+  document.getElementById('menu-result').style.display='block';
+  document.getElementById('menu-result').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+// ========== RENDER MENU ==========
+function renderMenu(menu){
+  const container=document.getElementById('menu-days');
+  container.innerHTML='';
+
+  menu.forEach((day,di)=>{
+    // 新食材は day.newFood から直接取得（isNew フラグに依存しない）
+    // すでに食べた食材はチェック行も新食材バッジも出さない
+    const nfRaw=day.newFood||null;
+    const nf=(nfRaw&&!isEaten(nfRaw))?nfRaw:null;
+
+    // カード
+    const card=document.createElement('div');
+    card.className='day-card';
+
+    // ヘッダー
+    const hdr=document.createElement('div');
+    hdr.className='day-hdr';
+    hdr.innerHTML=`<div class="day-lbl">${DAYS[di]}曜日</div>${nf?'<span class="new-badge">🆕 新食材の日</span>':''}`;
+    card.appendChild(hdr);
+
+    // ボディ
+    const body=document.createElement('div');
+    body.className='day-body';
+
+    // 食事行
+    day.meals.forEach(meal=>{
+      const row=document.createElement('div');
+      row.className='meal-row';
+      row.innerHTML=`
+        <div class="meal-time">${meal.time}</div>
+        <div class="meal-content">
+          <div class="meal-ings"></div>
+        </div>`;
+      const ingsDiv=row.querySelector('.meal-ings');
+      meal.ings.forEach(ing=>{
+        // 全食材チップを表示（主食・野菜・タンパク質すべて見せる）
+        const c=FDB[ing.name]?.cat||'other';
+        const sp=document.createElement('span');
+        sp.className='ing-tag '+c;
+        // 赤点：新食材かつ未食のときだけ表示
+        if(nf&&ing.name===nf){
+          const dot=document.createElement('span');
+          dot.className='new-dot';
+          dot.dataset.food=ing.name;
+          sp.appendChild(dot);
+        }
+        sp.appendChild(document.createTextNode(ing.name));
+        sp.addEventListener('click',()=>showRecipe(ing.name));
+        ingsDiv.appendChild(sp);
+      });
+      body.appendChild(row);
+    });
+
+    // チェック行 — 新食材があり、まだ食べていない日だけ表示
+    if(nf){
+      const name=nf;
+      const cat=FDB[name]?.cat||'other';
+
+      const cr=document.createElement('div');
+      cr.className='check-row';
+      cr.dataset.checkFood=name; // 同じ食材の全チェック行を消すために使用
+      cr.style.cssText='display:flex;align-items:center;gap:8px;padding:8px 12px;margin-top:6px;border:1.5px solid #ffcdd2;border-radius:8px;background:#fff8f8;cursor:pointer;';
+
+      const box=document.createElement('div');
+      box.className='check-box';
+
+      const lbl=document.createElement('div');
+      lbl.className='check-label';
+      lbl.innerHTML='<strong>'+name+'</strong> を初めて食べた';
+      lbl.style.flex='1';
+
+      const dt=document.createElement('div');
+      dt.className='check-date';
+
+      cr.appendChild(box);
+      cr.appendChild(lbl);
+      cr.appendChild(dt);
+
+      cr.addEventListener('click',function(e){
+        e.stopPropagation();
+        markEaten(name,cat);
+        // 同じ食材のチェック行を全て非表示（他の日に同じ食材が出ていても消す）
+        document.querySelectorAll('.check-row[data-check-food="'+name+'"]').forEach(r=>r.style.display='none');
+        // 同じ食材の赤点を全て非表示
+        document.querySelectorAll('.new-dot[data-food="'+name+'"]').forEach(d=>d.style.display='none');
+        // 新食材バッジを非表示（この日のヘッダー）
+        hdr.querySelector('.new-badge')&&(hdr.querySelector('.new-badge').style.display='none');
+      });
+
+      body.appendChild(cr);
+    }
+
+    card.appendChild(body);
+    container.appendChild(card);
+  });
+}
+
+function getDateStr(name){
+  const f=load().find(x=>x.name===name);
+  return f?f.date.slice(5).replace('-','/')+' 記録済':'';
+}
+
+// ========== ADVICE ==========
+function renderAdvice(){
+  const s=STAGES[selAge];
+  const af=allIngs().filter(f=>FDB[f]?.isAllergy);
+  const items=[];
+  if(af.length) items.push({t:'allergy',i:'⚠️',ttl:'アレルギーに注意',body:`今週使用予定の食材のうち、<strong>${af.join('・')}</strong>はアレルギーに注意が必要です。初めて与える際は必ず午前中に少量から試し、かかりつけ医に相談してから。`});
+  items.push({t:'allergy',i:'🏥',ttl:'新食材を試す際の注意',body:'🆕印の「新食材の日」は新しい食材を1種類だけ追加します。必ず午前中に小さじ1/4〜1/2程度から。体調のよい日に試し、翌日まで様子を観察してください。食べたらチェックで記録！'});
+  if(selAge<=6) items.push({t:'nutrition',i:'🥕',ttl:'栄養ポイント（ごっくん期）',body:'この時期は「食べる練習」が目的。栄養は母乳・ミルクで補います。鉄分不足になりやすいため、7ヶ月頃からほうれん草・しらすなどを取り入れましょう。'});
+  else if(selAge<=8) items.push({t:'nutrition',i:'🥦',ttl:'栄養ポイント（もぐもぐ期）',body:'1日2回食で食材の種類を広げていく時期。鉄・亜鉛は不足しやすいため、しらす・豆腐・ほうれん草を積極的に。ビタミンCはブロッコリー・トマトと組み合わせると鉄の吸収がUP。'});
+  else if(selAge<=11) items.push({t:'nutrition',i:'🍳',ttl:'栄養ポイント（かみかみ期）',body:'1日3回食で栄養の2/3を食事から摂れるようにしていきます。鉄・カルシウムが特に大切。赤身肉・ほうれん草で鉄を、チーズ・ヨーグルト・小松菜でカルシウムを補いましょう。'});
+  else items.push({t:'nutrition',i:'🍚',ttl:'栄養ポイント（ぱくぱく期）',body:'食事が栄養の主役に。5大栄養素をバランスよく。おやつも補食として取り入れ、1日4回食（3回食＋おやつ）を意識しましょう。'});
+  items.push({t:'tip',i:'👨‍🍳',ttl:'調理のコツ',body:`【${s.name}の基本】${s.sub}が目安。製氷皿で1回分ずつ冷凍ストックすると便利。1週間を目安に使い切りましょう。`});
+  items.push({t:'tip',i:'🧂',ttl:'味付けについて',body:selAge<=8?'調味料は使用しません。素材の味をそのまま活かしましょう。だし（こんぶ・かつおぶし）はOK。':selAge<=11?'薄味で。塩・しょうゆは少量。大人の1/4以下が目安。':'大人の1/3〜1/4程度の薄味を目指しましょう。'});
+  document.getElementById('advice-area').innerHTML=items.map(a=>`<div class="adv-card ${a.t}"><div class="adv-icon">${a.i}</div><div><div class="adv-title">${a.ttl}</div><div class="adv-body">${a.body}</div></div></div>`).join('');
+}
+
+// ========== HISTORY PAGE ==========
+function setFilter(f){
+  curFilter=f;
+  document.querySelectorAll('.f-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('f-'+f).classList.add('active');
+  renderEatenList();
+}
+
+function renderHistory(){
+  const a=load();
+  const now=new Date();
+  const ym=now.getFullYear()+'-'+(''+(now.getMonth()+1)).padStart(2,'0');
+  document.getElementById('cnt-total').textContent=a.length;
+  document.getElementById('cnt-month').textContent=a.filter(f=>f.date&&f.date.startsWith(ym)).length;
+  document.getElementById('cnt-allergy').textContent=a.filter(f=>FDB[f.name]?.isAllergy).length;
+  renderEatenList();
+}
+
+function renderEatenList(){
+  const a=load();
+  const el=document.getElementById('eaten-list');
+  const fil=curFilter==='all'?a:a.filter(f=>f.cat===curFilter);
+
+  if(fil.length===0){
+    el.innerHTML=`<div class="empty-state"><div class="ei">🌱</div><p>${a.length===0?'まだ記録がありません。<br>メニュー画面でチェックしてみましょう！':'このカテゴリの食材はまだありません。'}</p></div>`;
+    return;
+  }
+
+  const sorted=[...fil].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  const byM={};
+  sorted.forEach(f=>{const m=f.date?f.date.slice(0,7):'その他';if(!byM[m])byM[m]=[];byM[m].push(f);});
+
+  const dotCol={grain:'#f4c430',veg:'#66bb6a',protein:'#ef5350',other:'#ab47bc'};
+  let html='';
+  Object.entries(byM).forEach(([m,foods])=>{
+    const lbl=m==='その他'?'その他':(()=>{const d=new Date(m+'-01');return d.getFullYear()+'年'+(d.getMonth()+1)+'月';})();
+    html+=`<div class="food-section"><div class="food-section-ttl">📅 ${lbl} <span style="color:#bbb;font-weight:normal;">(${foods.length}種)</span></div><div class="food-grid">`;
+    foods.forEach(f=>{
+      const ds=f.date?f.date.slice(5).replace('-','/'):'';
+      const alg=FDB[f.name]?.isAllergy;
+      html+=`<div class="food-card ${f.cat}-card" onclick="showRecipe('${f.name}')">
+        <button class="del-btn" onclick="event.stopPropagation();removeById(${f.id})">×</button>
+        <div class="fdot" style="background:${dotCol[f.cat]||'#ccc'}"></div>
+        <div class="fname">${f.name}${alg?' ⚠️':''}</div>
+        <div class="fdate">${ds}</div>
+      </div>`;
+    });
+    html+=`</div></div>`;
+  });
+  el.innerHTML=html;
+}
+
+function addManual(){
+  const inp=document.getElementById('m-food');
+  const cat=document.getElementById('m-cat').value;
+  const name=inp.value.trim();
+  if(!name)return;
+  if(isEaten(name)){toast('「'+name+'」はすでに記録済みです');inp.value='';return;}
+  markEaten(name,cat);
+  inp.value='';
+  renderHistory();
+}
+
+function clearAll(){
+  if(confirm('食べた食材の記録をすべて削除しますか？')){
+    save([]);refreshBadge();renderHistory();toast('記録をすべて削除しました');
+  }
+}
+
+// ========== RECIPE MODAL ==========
+function showRecipe(name){
+  const f=FDB[name];
+  const mb=document.getElementById('modal-body');
+  if(!f){
+    mb.innerHTML=`<div class="mfood">${name}</div><div class="msec"><div class="msec-ttl">作り方のポイント</div><p>月齢に応じた固さ・大きさに調整してください。</p></div>`;
+    document.getElementById('overlay').classList.add('open');return;
+  }
+  const age=selAge||7;
+  const sk=age<=6?5:age<=8?7:age<=11?9:12;
+  const pks=Object.keys(f.prep).map(Number).filter(k=>k<=sk);
+  const pk=pks.length?Math.max(...pks):Number(Object.keys(f.prep)[0]);
+  const prep=f.prep[pk]||Object.values(f.prep)[0];
+  const sn=selAge?STAGES[selAge].name:'';
+  const cl={grain:'主食・炭水化物',veg:'野菜・果物',protein:'タンパク質',other:'その他'};
+  const eaten=isEaten(name);
+  const einfo=eaten?`<div style="display:inline-flex;align-items:center;gap:4px;background:#e8f5e9;border-radius:10px;padding:4px 10px;font-size:.78rem;color:#2e7d32;margin-bottom:14px;">✅ 食べた記録あり（${getDateStr(name)}）</div>`:'' ;
+  mb.innerHTML=`
+    <div class="mfood">${name}</div>
+    <div class="mstage">${cl[f.cat]||''} | 使用開始：${f.minAge}ヶ月〜</div>
+    ${einfo}
+    ${f.allergy?`<div class="allergy-box">⚠️ <div>${f.allergy}</div></div>`:''}
+    <div class="msec" style="margin-top:14px;">
+      <div class="msec-ttl">${sn?`【${sn}】${age}ヶ月の作り方`:'作り方'}</div>
+      <p>${prep}</p>
+    </div>
+    <div class="msec"><div class="msec-ttl">栄養・ポイント</div><p>${f.tip}</p></div>
+    ${Object.keys(f.prep).length>1?`<div class="msec"><div class="msec-ttl">月齢別 作り方まとめ</div><ul>${Object.entries(f.prep).map(([a,p])=>`<li><strong>${a}ヶ月〜:</strong> ${p}</li>`).join('')}</ul></div>`:''}`;
+  document.getElementById('overlay').classList.add('open');
+}
+function closeModal(){document.getElementById('overlay').classList.remove('open');}
+
+// ========== TOAST ==========
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2600);
+}
+
+// ========== INIT ==========
+refreshBadge();
+</script>
+</body>
+</html>
