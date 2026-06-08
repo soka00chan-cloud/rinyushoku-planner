@@ -582,7 +582,6 @@ function generateMenu(){
   if(ai.length<minIng){alert('食材を'+minIng+'つ以上入力してください');return;}
   const tpl=getTpl();
   const menu=[];
-  const used=new Set();
   // 食べた食材は新食材候補から除外
   const eatenNames=new Set(load().map(f=>f.name));
 
@@ -664,41 +663,69 @@ function generateMenu(){
     const prevV=d>0?menu[d-1].meals.flatMap(m=>m.ings.map(i=>i.name)):[];
     const prevP=d>0?menu[d-1].meals.flatMap(m=>m.ings.filter(i=>i.cat==='protein').map(i=>i.name)):[];
 
+    // 1日の中で使った食材を追跡（朝・昼・夜で同じ食材が出ないように）
+    const dayUsed=new Set();
+    // その日の主食をシャッフルしてローテーション（さつまいも・じゃがいも偏りを防ぐ）
+    const Gday=shuffle([...G]);
+    let gIdx=0;
+
     tpl.forEach((meal,mi)=>{
       const mis=[];
-      if(meal.g&&G.length)mis.push({name:pickOne(G,used),cat:'grain'});
+      // 主食：1日の中でローテーション（同じ主食を繰り返さない）
+      if(meal.g&&G.length){
+        const gFresh=Gday.filter(f=>!dayUsed.has(f));
+        const gPool=gFresh.length?gFresh:Gday;
+        const gPick=gPool[0];
+        mis.push({name:gPick,cat:'grain'});
+        dayUsed.add(gPick);
+      }
 
       if(is5m){
-        // 5ヶ月：食べ済み＋今週導入済みの野菜を全部表示（最大3個）
-        // newFoodが野菜の場合は枠を1つ残す（max2→+newFood=3）
+        // 5ヶ月：newFoodが野菜の日は既存野菜を出さない（newFoodで補う）
         const newFoodIsVeg=newFood&&(FDB[newFood]?.cat||'other')==='veg';
-        // 5ヶ月は野菜1種類。新食材が野菜の日は既存野菜を出さない（newFoodで補う）
         if(meal.v>0&&!newFoodIsVeg&&V.length){
-          // 前日と被らないようにランダム選択
-          const freshV=V.filter(f=>!prevV.includes(f));
-          const pickV=freshV.length?freshV:V;
-          const chosen=pickV[Math.floor(Math.random()*pickV.length)];
+          // 前日と被らず、かつ今日まだ使っていない野菜を選ぶ
+          const freshV=V.filter(f=>!prevV.includes(f)&&!dayUsed.has(f));
+          const pickV=freshV.length?freshV:V.filter(f=>!dayUsed.has(f));
+          const pickV2=pickV.length?pickV:V;
+          const chosen=pickV2[Math.floor(Math.random()*pickV2.length)];
           mis.push({name:chosen,cat:'veg'});
+          dayUsed.add(chosen);
         }
         // タンパク質（3週目以降）
-        if(meal.p&&P.length)mis.push({name:pickOne(P,used),cat:'protein'});
+        if(meal.p&&P.length){
+          const fp=P.filter(f=>!dayUsed.has(f));
+          const pp=fp.length?fp:P;
+          const pick=pp[Math.floor(Math.random()*pp.length)];
+          mis.push({name:pick,cat:'protein'});
+          dayUsed.add(pick);
+        }
       } else {
-        // 他月齢：従来通りpickOneで1〜2個
+        // 他月齢：前日・同日他食事と被らないように選ぶ
         for(let i=0;i<meal.v;i++){
-          const fv=V.filter(f=>!prevV.includes(f));
-          const vp=fv.length?fv:V;
-          if(vp.length)mis.push({name:pickOne(vp,used),cat:'veg'});
+          const fv=V.filter(f=>!prevV.includes(f)&&!dayUsed.has(f));
+          const vp=fv.length?fv:V.filter(f=>!dayUsed.has(f));
+          const vp2=vp.length?vp:V;
+          if(vp2.length){
+            const pick=vp2[Math.floor(Math.random()*vp2.length)];
+            mis.push({name:pick,cat:'veg'});
+            dayUsed.add(pick);
+          }
         }
         if(meal.p&&P.length){
-          const fp=P.filter(f=>!prevP.includes(f));
-          mis.push({name:pickOne(fp.length?fp:P,used),cat:'protein'});
+          const fp=P.filter(f=>!prevP.includes(f)&&!dayUsed.has(f));
+          const pp=fp.length?fp:P.filter(f=>!dayUsed.has(f));
+          const pp2=pp.length?pp:P;
+          const pick=pp2[Math.floor(Math.random()*pp2.length)];
+          mis.push({name:pick,cat:'protein'});
+          dayUsed.add(pick);
         }
       }
 
       // newFood を最初の食事に追加（上書きせず末尾に追加）
       if(newFood&&mi===0&&!mis.some(x=>x.name===newFood)){
         mis.push({name:newFood,cat:FDB[newFood]?.cat||'other'});
-        used.add(newFood);
+        dayUsed.add(newFood);
       }
 
       // 表示順を主食→野菜→タンパク質に整列
