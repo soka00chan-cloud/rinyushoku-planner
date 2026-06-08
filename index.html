@@ -703,7 +703,7 @@ function generateMenu(){
 
       // 表示順を主食→野菜→タンパク質に整列
       const catOrder={grain:0,veg:1,protein:2,other:3};
-      mis.sort((a,b)=>(catOrder[a.cat]||3)-(catOrder[b.cat]||3));
+      mis.sort((a,b)=>(catOrder[a.cat]??3)-(catOrder[b.cat]??3));
       day.meals.push({time:meal.time,name:meal.name,ings:mis});
     });
     // この日の新食材を記録 → 翌日以降のメニューで使えるようにする
