@@ -177,6 +177,38 @@ header p { font-size:.75rem; opacity:.9; }
 .msec li { font-size:.85rem; line-height:1.7; color:#444; }
 .allergy-box { background:#fff3e0; border-radius:10px; padding:10px 12px; font-size:.82rem; color:#bf360c; display:flex; gap:8px; margin-bottom:10px; }
 
+/* ── 新食材チェックリスト ── */
+.cl-section { margin-bottom:20px; }
+.cl-section-hdr {
+  display:flex; align-items:center; gap:8px;
+  font-size:.85rem; font-weight:bold; color:#555;
+  margin-bottom:10px; padding:8px 12px;
+  background:#f5f5f5; border-radius:10px;
+}
+.cl-section-hdr .cl-dot { width:12px; height:12px; border-radius:50%; flex-shrink:0; }
+.cl-item {
+  display:flex; align-items:center; gap:12px;
+  padding:10px 14px; border-radius:12px; margin-bottom:6px;
+  border:1.5px solid #e0e0e0; background:white;
+  cursor:pointer; transition:all .15s; touch-action:manipulation;
+}
+.cl-item:hover { border-color:#ff7043; background:#fff8f0; }
+.cl-item.cl-done { background:#f9f9f9; border-color:#e0e0e0; opacity:.7; }
+.cl-item .cl-check {
+  width:26px; height:26px; border-radius:8px; border:2px solid #ef9a9a;
+  background:white; display:flex; align-items:center; justify-content:center;
+  font-size:1rem; flex-shrink:0; transition:all .15s;
+}
+.cl-item.cl-done .cl-check { background:#ef5350; border-color:#ef5350; color:white; }
+.cl-item .cl-name { flex:1; font-size:.88rem; font-weight:bold; color:#333; }
+.cl-item.cl-done .cl-name { text-decoration:line-through; color:#aaa; }
+.cl-item .cl-meta { font-size:.72rem; color:#aaa; white-space:nowrap; }
+.cl-item .cl-age-badge {
+  font-size:.68rem; padding:2px 7px; border-radius:10px;
+  font-weight:bold; white-space:nowrap; flex-shrink:0;
+}
+.cl-item .cl-alg { font-size:.72rem; color:#e65100; flex-shrink:0; }
+
 /* toast */
 .toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(80px); background:rgba(40,40,40,.92); color:white; padding:10px 22px; border-radius:24px; font-size:.85rem; z-index:2000; transition:transform .28s ease; pointer-events:none; }
 .toast.show { transform:translateX(-50%) translateY(0); }
@@ -240,7 +272,8 @@ button, .age-btn, .quick-chip, .ing-tag, .check-row, .f-btn, .food-card, .tab-bt
   </div>
   <div class="tabs">
     <button class="tab-btn active" id="tab-planner" onclick="switchTab('planner')">📅 メニュー</button>
-    <button class="tab-btn" id="tab-history" onclick="switchTab('history')">✅ 食べた食材 <span class="cnt" id="eaten-cnt">0</span></button>
+    <button class="tab-btn" id="tab-checklist" onclick="switchTab('checklist')">🆕 新食材リスト</button>
+    <button class="tab-btn" id="tab-history" onclick="switchTab('history')">✅ 食べた記録 <span class="cnt" id="eaten-cnt">0</span></button>
   </div>
 </header>
 
@@ -321,7 +354,38 @@ button, .age-btn, .quick-chip, .ing-tag, .check-row, .f-btn, .food-card, .tab-bt
 </div>
 </div>
 
-<!-- PAGE 2 -->
+<!-- PAGE 2: 新食材チェックリスト -->
+<div class="page" id="page-checklist">
+<div class="container">
+
+  <div class="sum-grid">
+    <div class="sum-box"><div class="num" id="cl-eaten">0</div><div class="lbl">食べた ✅</div></div>
+    <div class="sum-box"><div class="num" id="cl-remain">0</div><div class="lbl">まだの食材</div></div>
+    <div class="sum-box"><div class="num" id="cl-pct">0%</div><div class="lbl">達成率</div></div>
+  </div>
+
+  <div class="card" style="padding:12px 16px;">
+    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:10px;">
+      <div style="font-size:.8rem;font-weight:bold;color:#888;margin-right:4px;">月齢で絞り込み：</div>
+      <button class="f-btn active" id="cl-f-all" onclick="setClFilter('all')">すべて</button>
+      <button class="f-btn" id="cl-f-5" onclick="setClFilter(5)">5ヶ月〜</button>
+      <button class="f-btn" id="cl-f-6" onclick="setClFilter(6)">6ヶ月〜</button>
+      <button class="f-btn" id="cl-f-7" onclick="setClFilter(7)">7ヶ月〜</button>
+      <button class="f-btn" id="cl-f-9" onclick="setClFilter(9)">9ヶ月〜</button>
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;">
+      <button class="f-btn active" id="cl-s-all" onclick="setClStatus('all')">全表示</button>
+      <button class="f-btn" id="cl-s-notyet" onclick="setClStatus('notyet')">まだ食べてない</button>
+      <button class="f-btn" id="cl-s-done" onclick="setClStatus('done')">食べた</button>
+    </div>
+  </div>
+
+  <div id="checklist-area"></div>
+
+</div>
+</div>
+
+<!-- PAGE 3: 食べた記録 -->
 <div class="page" id="page-history">
 <div class="container">
 
@@ -490,6 +554,7 @@ function switchTab(t){
   document.getElementById('page-'+t).classList.add('active');
   document.getElementById('tab-'+t).classList.add('active');
   if(t==='history') renderHistory();
+  if(t==='checklist') renderChecklist();
 }
 
 // ========== AGE ==========
@@ -969,6 +1034,125 @@ function toast(msg){
   const t=document.getElementById('toast');
   t.textContent=msg; t.classList.add('show');
   setTimeout(()=>t.classList.remove('show'),2600);
+}
+
+// ========== 新食材チェックリスト ==========
+let clFilterAge='all', clFilterStatus='all';
+
+// チェックリスト用の全食材リスト（卵ステップ含む、FDB全体から）
+function getChecklistFoods(){
+  // カテゴリ順・月齢順で並べる
+  const order={grain:0,veg:1,protein:2,other:3};
+  return Object.entries(FDB)
+    .filter(([name])=>name!=='おかゆ') // おかゆは除外（毎日の主食なので）
+    .map(([name,f])=>({name,...f}))
+    .sort((a,b)=>{
+      const co=(order[a.cat]??3)-(order[b.cat]??3);
+      if(co!==0)return co;
+      return (a.minAge||5)-(b.minAge||5);
+    });
+}
+
+function setClFilter(age){
+  clFilterAge=age;
+  document.querySelectorAll('[id^="cl-f-"]').forEach(b=>b.classList.remove('active'));
+  document.getElementById('cl-f-'+(age==='all'?'all':age)).classList.add('active');
+  renderChecklist();
+}
+function setClStatus(s){
+  clFilterStatus=s;
+  document.querySelectorAll('[id^="cl-s-"]').forEach(b=>b.classList.remove('active'));
+  document.getElementById('cl-s-'+s).classList.add('active');
+  renderChecklist();
+}
+
+function renderChecklist(){
+  const eaten=new Set(load().map(f=>f.name));
+  let foods=getChecklistFoods();
+
+  // 月齢フィルター
+  if(clFilterAge!=='all') foods=foods.filter(f=>f.minAge<=clFilterAge);
+
+  // 食べた/まだフィルター
+  if(clFilterStatus==='done') foods=foods.filter(f=>eaten.has(f.name));
+  if(clFilterStatus==='notyet') foods=foods.filter(f=>!eaten.has(f.name));
+
+  // カウント
+  const totalAll=getChecklistFoods().length;
+  const eatenAll=getChecklistFoods().filter(f=>eaten.has(f.name)).length;
+  const remainAll=totalAll-eatenAll;
+  const pct=totalAll>0?Math.round(eatenAll/totalAll*100):0;
+  document.getElementById('cl-eaten').textContent=eatenAll;
+  document.getElementById('cl-remain').textContent=remainAll;
+  document.getElementById('cl-pct').textContent=pct+'%';
+
+  const area=document.getElementById('checklist-area');
+  if(foods.length===0){
+    area.innerHTML='<div class="empty-state"><div class="ei">🎉</div><p>該当する食材はありません</p></div>';
+    return;
+  }
+
+  // カテゴリ別にグループ
+  const catInfo={
+    grain:{label:'🌾 主食・炭水化物',dot:'#f4c430'},
+    veg:{label:'🥦 野菜・果物',dot:'#66bb6a'},
+    protein:{label:'🍳 タンパク質',dot:'#ef5350'},
+    other:{label:'その他',dot:'#ab47bc'}
+  };
+  const groups={grain:[],veg:[],protein:[],other:[]};
+  foods.forEach(f=>{ (groups[f.cat]||groups.other).push(f); });
+
+  const ageBadgeStyle={
+    5:'background:#fff3e0;color:#e65100;',
+    6:'background:#e8f5e9;color:#2e7d32;',
+    7:'background:#e3f2fd;color:#1565c0;',
+    8:'background:#e3f2fd;color:#1565c0;',
+    9:'background:#fce4ec;color:#880e4f;',
+    10:'background:#fce4ec;color:#880e4f;',
+    11:'background:#fce4ec;color:#880e4f;',
+    12:'background:#f3e5f5;color:#4a148c;'
+  };
+
+  let html='';
+  Object.entries(groups).forEach(([cat,items])=>{
+    if(!items.length)return;
+    const ci=catInfo[cat]||catInfo.other;
+    const doneCount=items.filter(f=>eaten.has(f.name)).length;
+    html+=`<div class="cl-section">
+      <div class="cl-section-hdr">
+        <span class="cl-dot" style="background:${ci.dot}"></span>
+        ${ci.label}
+        <span style="margin-left:auto;font-size:.78rem;color:#aaa;font-weight:normal;">${doneCount}/${items.length} 食べた</span>
+      </div>`;
+    items.forEach(f=>{
+      const done=eaten.has(f.name);
+      const dateStr=done?(load().find(x=>x.name===f.name)?.date||'').slice(5).replace('-','/'):'';
+      const ageStyle=ageBadgeStyle[f.minAge]||'background:#eee;color:#666;';
+      html+=`<div class="cl-item${done?' cl-done':''}" onclick="toggleCl('${f.name}','${f.cat}')">
+        <div class="cl-check">${done?'✓':''}</div>
+        <div class="cl-name">${f.name}</div>
+        ${f.isAllergy?'<span class="cl-alg">⚠️アレルギー</span>':''}
+        <span class="cl-age-badge" style="${ageStyle}">${f.minAge}ヶ月〜</span>
+        <div class="cl-meta">${done?dateStr+' 記録済':''}</div>
+      </div>`;
+    });
+    html+='</div>';
+  });
+  area.innerHTML=html;
+}
+
+function toggleCl(name,cat){
+  const eaten=load();
+  if(eaten.some(f=>f.name===name)){
+    // 記録済み → 取り消し
+    save(eaten.filter(f=>f.name!==name));
+    refreshBadge();
+    toast('「'+name+'」の記録を取り消しました');
+  } else {
+    // 未食 → 記録
+    markEaten(name,cat);
+  }
+  renderChecklist();
 }
 
 // ========== INIT ==========
